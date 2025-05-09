@@ -1,0 +1,10 @@
+langchain-deepseek
+firebase-admin
+langchain-core
+langchain-community
+streamlit
+pydeck
+geopandas
+matplotlib
+python-dotenv
+pandas
