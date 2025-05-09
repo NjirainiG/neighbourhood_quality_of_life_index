@@ -11,3 +11,4 @@ pandas
 langchain_experimental
 utils
 folium
+streamlit_folium
