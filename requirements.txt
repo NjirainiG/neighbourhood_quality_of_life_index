@@ -8,3 +8,4 @@ geopandas
 matplotlib
 python-dotenv
 pandas
+langchain_experimental.agents
