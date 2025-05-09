@@ -354,7 +354,7 @@ def display_map(display_gdf, calc_gdf):
 
 
 def main():
-    st.title("GeoAI Neighborhood Quality of Life Explorer")
+    st.title("GeoAI Neighborhood Quality of Life Explorer-mtaawetu2025")
 
     # Initialize session state
     if 'gdf' not in st.session_state:
@@ -653,7 +653,7 @@ def main():
         """)
         
         st.divider()
-        st.subheader("Example Queries")
+        st.subheader("Example Queries-please wait for response")
         st.write("**Basic Analysis:**")
         st.code("- Which neighborhood has highest quality of life?")
         st.code("- Show areas with healthcare score > 0.7")
