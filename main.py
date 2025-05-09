@@ -404,7 +404,7 @@ def main():
         st.warning("No data available")
 
     # Enhanced chat interface
-    st.subheader("AI Spatial Assistant")
+    st.subheader("AI Spatial Assistant-sorry for my latency")
     
     # Initialize chat history
     if "messages" not in st.session_state:
