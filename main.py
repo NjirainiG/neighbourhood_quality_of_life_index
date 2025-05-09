@@ -16,7 +16,7 @@ import json
 import tempfile
 import time
 from datetime import datetime
-from utils.error_handler import GeoAIError
+#from utils.error_handler import GeoAIError
 from dotenv import load_dotenv
 
 from firebase_admin import credentials
