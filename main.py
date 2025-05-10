@@ -650,6 +650,7 @@ def main():
         - Ask about specific neighborhoods
         - Compare quality of life indicators
         - Visualize spatial patterns
+        © mtaawetu 2025
         """)
         
         st.divider()
