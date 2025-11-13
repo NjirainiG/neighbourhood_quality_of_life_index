@@ -1,5 +1,4 @@
 langchain-deepseek
-langchain>=0.2.0
 firebase-admin
 langchain-core
 langchain-community
@@ -9,12 +8,6 @@ geopandas
 matplotlib
 python-dotenv
 pandas
-langchain_experimental
-utils
-folium
-streamlit_folium
-tabulate
-branca
 
 
 
