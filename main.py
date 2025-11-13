@@ -1,9 +1,5 @@
 import os
 import sys
-import firebase_admin
-from langchain_core.language_models.llms import BaseLLM
-from langchain_core.outputs import LLMResult
-from typing import List
 import requests
 import streamlit as st
 import pydeck as pdk
@@ -12,7 +8,7 @@ import matplotlib
 from shapely.geometry import Point
 from langchain_deepseek import ChatDeepSeek
 from langchain_experimental.agents import create_csv_agent, create_pandas_dataframe_agent
-from langchain.chains.conversation.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferMemory
 import json
 import tempfile
 import time
@@ -23,56 +19,24 @@ sys.path.append(os.path.dirname(__file__))
 from utils.error_handler import GeoAIError
 from dotenv import load_dotenv
 
-from firebase_admin import credentials
-from firebase_admin import storage
-
 # Load environment variables
 load_dotenv()
 
-# Initialize Firebase with error handling
-try:
-    # Initialize Firebase with explicit name handling
-    try:
-        app = firebase_admin.get_app('geoai-app')
-    except ValueError:
-        # Initialize if not exists
-        firebase_config = json.loads(st.secrets["FIREBASE_CONFIG_JSON"])
-        cred = credentials.Certificate(firebase_config)
-        app = firebase_admin.initialize_app(cred, {
-            'storageBucket': st.secrets["FIREBASE_CONFIG_JSON_BUCKET"],
-            'location': 'US'
-        }, name='geoai-app')
-except Exception as e:
-    st.error(f"Firebase initialization failed: {str(e)}")
-    st.stop()
+# Supabase Storage configuration
+SUPABASE_GEOJSON_URL = st.secrets["SUPABASE_GEOJSON_URL"]
 
-# Get bucket from initialized app
-bucket = storage.bucket(app=app)
 os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
-def fetch_geojson_from_storage(file_path):
-    """Fetches a GeoJSON file from Firebase Storage."""
+def fetch_geojson_from_supabase():
+    """Fetches the GeoJSON file from Supabase Storage."""
     try:
-        blob = bucket.blob(file_path)
-        if not blob.exists():
-            raise GeoAIError("Requested file not found in storage", 404)
-        downloaded_file = blob.download_as_text()
-        return downloaded_file
+        response = requests.get(SUPABASE_GEOJSON_URL)
+        if response.status_code == 200:
+            return response.text
+        else:
+            raise GeoAIError(f"Failed to fetch file from Supabase: {response.status_code}", response.status_code)
     except Exception as e:
         raise GeoAIError(f"Failed to fetch file: {str(e)}", 500)
-
-def upload_to_storage(file, destination_path=None):
-    """Uploads a file to Firebase Storage."""
-    try:
-        if not destination_path:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            destination_path = f"uploads/{timestamp}_{file.name}"
-
-        blob = bucket.blob(destination_path)
-        blob.upload_from_file(file)
-        return destination_path
-    except Exception as e:
-        raise GeoAIError(f"Upload failed: {str(e)}", 500)
 
 def process_user_query(agent, query, gdf):
     """Processes user query using the Langchain agent with robust response handling."""
@@ -354,7 +318,7 @@ def display_map(display_gdf, calc_gdf):
 
 
 def main():
-    st.title("GeoAI Neighborhood Quality of Life Explorer-mtaawetu2025")
+    st.title("GeoAI Neighborhood Quality of Life Explorer")
 
     # Initialize session state
     if 'gdf' not in st.session_state:
@@ -362,18 +326,19 @@ def main():
     if 'active_file' not in st.session_state:
         st.session_state.active_file = None
 
-    # Always use default file
+    # Always use default file from Supabase
     if st.session_state.gdf is None:
         try:
-            # Load complete dataset with all 108 neighborhoods
-            geojson_data = fetch_geojson_from_storage('NQoLI_wgs84.geojson') 
+            # Load from Supabase Storage
+            geojson_data = fetch_geojson_from_supabase()
             # Read GeoJSON and ensure it has valid geometry
             st.session_state.gdf = gpd.read_file(geojson_data)
             if 'geometry' not in st.session_state.gdf.columns:
                 st.session_state.gdf['geometry'] = None
             st.session_state.active_file = 'NQoLI_wgs84.geojson'
-        except GeoAIError as e:
-            st.warning("Default dataset not found in storage. Please upload a GeoJSON file.")
+            st.success("✅ Loaded dataset from Supabase Storage")
+        except Exception as e:
+            st.error(f"Failed to load dataset from Supabase: {str(e)}")
             st.session_state.gdf = gpd.GeoDataFrame()  # Create empty GeoDataFrame
             return
 
@@ -404,7 +369,7 @@ def main():
         st.warning("No data available")
 
     # Enhanced chat interface
-    st.subheader("AI Spatial Assistant-sorry for my latency")
+    st.subheader("AI Spatial Assistant")
     
     # Initialize chat history
     if "messages" not in st.session_state:
@@ -650,11 +615,10 @@ def main():
         - Ask about specific neighborhoods
         - Compare quality of life indicators
         - Visualize spatial patterns
-        - © mtaawetu 2025
         """)
         
         st.divider()
-        st.subheader("Example Queries-please wait for response")
+        st.subheader("Example Queries")
         st.write("**Basic Analysis:**")
         st.code("- Which neighborhood has highest quality of life?")
         st.code("- Show areas with healthcare score > 0.7")
@@ -669,4 +633,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
