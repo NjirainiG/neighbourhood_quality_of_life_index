@@ -1,5 +1,6 @@
 langchain-deepseek
 langchain
+langchain.chains
 firebase-admin
 langchain-core
 langchain-community
@@ -15,4 +16,5 @@ folium
 streamlit_folium
 tabulate
 branca
+
 
