@@ -382,7 +382,7 @@ def main():
             st.markdown(message["content"])
     
     # Chat input
-    if prompt := st.chat_input("Ask me anything about the spatial data..."):
+    if prompt := st.chat_input("Ask me about accessiblity in your mtaa..."):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
@@ -402,7 +402,8 @@ def main():
         llm = ChatDeepSeek(
             model="deepseek-chat",
             api_key=st.secrets["DEEPSEEK_API_KEY"],
-            temperature=0.7
+            temperature=0.7,
+            streaming=True
         )
 
         # Create agent directly with the full GeoDataFrame (108 neighborhoods)
@@ -634,5 +635,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
