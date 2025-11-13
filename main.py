@@ -8,6 +8,7 @@ import matplotlib
 from shapely.geometry import Point
 from langchain_deepseek import ChatDeepSeek
 from langchain_experimental.agents import create_csv_agent, create_pandas_dataframe_agent
+from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.memory import ConversationBufferMemory
 import json
 import tempfile
@@ -633,3 +634,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
