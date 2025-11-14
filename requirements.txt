@@ -1,5 +1,6 @@
 langchain
 langchain-deepseek
+langchain_experimental
 firebase-admin
 langchain-community
 streamlit
@@ -8,6 +9,7 @@ geopandas
 matplotlib
 python-dotenv
 pandas
+
 
 
 
