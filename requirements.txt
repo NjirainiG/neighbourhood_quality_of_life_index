@@ -11,6 +11,8 @@ python-dotenv
 pandas
 folium
 streamlit_folium
+tabulate
+
 
 
 
