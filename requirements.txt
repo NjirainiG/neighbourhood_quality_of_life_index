@@ -12,6 +12,10 @@ pandas
 folium
 streamlit_folium
 tabulate
+langchain-google-genai
+langchain-core
+
+
 
 
 
