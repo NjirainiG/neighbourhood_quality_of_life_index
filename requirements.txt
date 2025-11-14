@@ -1,5 +1,4 @@
 langchain
-langchain-deepseek
 langchain_experimental
 firebase-admin
 langchain-community
@@ -13,6 +12,7 @@ folium
 streamlit_folium
 tabulate
 langchain-google-genai
+
 
 
 
