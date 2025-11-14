@@ -9,6 +9,8 @@ geopandas
 matplotlib
 python-dotenv
 pandas
+folium
+
 
 
 
