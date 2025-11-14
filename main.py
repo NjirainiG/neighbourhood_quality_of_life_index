@@ -6,10 +6,9 @@ import pydeck as pdk
 import geopandas as gpd
 import matplotlib
 from shapely.geometry import Point
-from langchain_deepseek import ChatDeepSeek
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_experimental.agents import create_csv_agent, create_pandas_dataframe_agent
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain.memory import ConversationBufferMemory
 import json
 import tempfile
 import time
@@ -382,7 +381,7 @@ def main():
             st.markdown(message["content"])
     
     # Chat input
-    if prompt := st.chat_input("Ask me about accessiblity in your mtaa..."):
+    if prompt := st.chat_input("Ask me anything about the spatial data..."):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
@@ -398,12 +397,11 @@ def main():
             st.error("Missing geometry column in analysis data")
             st.stop()
         
-        # Initialize DeepSeek Chat model
-        llm = ChatDeepSeek(
-            model="deepseek-chat",
-            api_key=st.secrets["DEEPSEEK_API_KEY"],
-            temperature=0.7,
-            streaming=True
+        # Initialize Google Gemini Chat model
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=st.secrets["GEMINI_API_KEY"],
+            temperature=0.7
         )
 
         # Create agent directly with the full GeoDataFrame (108 neighborhoods)
@@ -535,52 +533,59 @@ def main():
                             4. Use geometric relationships in calculations
                             """
                             
-                            raw_response = agent.run({
-                                "input": analysis_prompt,
-                                "context": {
-                                    "full_data_stats": data_context,
-                                    "reasoning_steps": [
-                                        "1. Identify relevant columns",
-                                        "2. Filter/extract required values",
-                                        "3. Perform quantitative comparisons",
-                                        "4. Spatial pattern recognition",
-                                        "5. Formulate insights"
-                                    ]
-                                }
-                            })
+                            # Replace the agent.run() call with streaming
+                            message_placeholder = st.empty()
+                            full_response = ""
                             
-                            # Simple, direct response formatting
-                            # Dynamic score column handling
-                            score_column = next((col for col in gdf.columns if 'score' in col.lower()), None)
-                            
-                            if score_column:
-                                if "highest" in prompt.lower():
-                                    max_score = gdf[score_column].max()
-                                    top_places = gdf[gdf[score_column] == max_score]['Name'].values
-                                    response = f"Highest {score_column} ({max_score:.2f}) found in: {', '.join(top_places)}"
-                                elif "lowest" in prompt.lower():
-                                    min_score = gdf[score_column].min()
-                                    bottom_places = gdf[gdf[score_column] == min_score]['Name'].values
-                                    response = f"Lowest {score_column} ({min_score:.2f}) found in: {', '.join(bottom_places)}"
-                                elif "higher than" in prompt.lower() or "above" in prompt.lower():
-                                    try:
-                                        threshold = float(prompt.split("higher than")[1].strip().split()[0]) if "higher than" in prompt.lower() else float(prompt.split("above")[1].strip().split()[0])
-                                        filtered = gdf[gdf[score_column] > threshold]
-                                        if len(filtered) > 0:
-                                            places = ", ".join([f"{row['Name']} ({row[score_column]:.2f})" for _, row in filtered.sort_values(score_column, ascending=False).iterrows()])
-                                            response = f"Areas with score above {threshold}: {places}"
-                                        else:
-                                            response = f"No areas found with score above {threshold}"
-                                    except:
-                                        response = "Please specify a valid threshold (e.g. 'above 0.3')"
+                            try:
+                                # Use invoke with streaming callback
+                                for chunk in agent.stream({"input": analysis_prompt}):
+                                    if "output" in chunk:
+                                        full_response += chunk["output"]
+                                        message_placeholder.markdown(full_response + "▌")
+                                
+                                message_placeholder.markdown(full_response)
+                                st.session_state.messages.append({"role": "assistant", "content": full_response})
+                                response = full_response
+                                
+                                # Simple, direct response formatting for special cases
+                                # Dynamic score column handling
+                                score_column = next((col for col in gdf.columns if 'score' in col.lower()), None)
+                                
+                                if score_column:
+                                    if "highest" in prompt.lower():
+                                        max_score = gdf[score_column].max()
+                                        top_places = gdf[gdf[score_column] == max_score]['Name'].values
+                                        response = f"Highest {score_column} ({max_score:.2f}) found in: {', '.join(top_places)}"
+                                    elif "lowest" in prompt.lower():
+                                        min_score = gdf[score_column].min()
+                                        bottom_places = gdf[gdf[score_column] == min_score]['Name'].values
+                                        response = f"Lowest {score_column} ({min_score:.2f}) found in: {', '.join(bottom_places)}"
+                                    elif "higher than" in prompt.lower() or "above" in prompt.lower():
+                                        try:
+                                            threshold = float(prompt.split("higher than")[1].strip().split()[0]) if "higher than" in prompt.lower() else float(prompt.split("above")[1].strip().split()[0])
+                                            filtered = gdf[gdf[score_column] > threshold]
+                                            if len(filtered) > 0:
+                                                places = ", ".join([f"{row['Name']} ({row[score_column]:.2f})" for _, row in filtered.sort_values(score_column, ascending=False).iterrows()])
+                                                response = f"Areas with score above {threshold}: {places}"
+                                            else:
+                                                response = f"No areas found with score above {threshold}"
+                                        except:
+                                            response = "Please specify a valid threshold (e.g. 'above 0.3')"
+                                    else:
+                                        response = full_response
                                 else:
-                                    response = raw_response
-                            else:
-                                response = raw_response
-                    
-                    # Display response
-                    st.markdown(response)
-                    st.session_state.messages.append({"role": "assistant", "content": response})
+                                    response = full_response
+                                
+                                # Update the displayed response if it was modified
+                                if response != full_response:
+                                    message_placeholder.markdown(response)
+                                    st.session_state.messages[-1] = {"role": "assistant", "content": response}
+                                    
+                            except Exception as stream_error:
+                                error_msg = f"Streaming error: {str(stream_error)}"
+                                st.error(error_msg)
+                                st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     
                     # Handle spatial operations
                     if isinstance(response, dict) and "spatial_operation" in response:
@@ -635,6 +640,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
