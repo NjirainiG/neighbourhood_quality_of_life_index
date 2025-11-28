@@ -400,7 +400,7 @@ def main():
         
         # Initialize Google Gemini Chat model
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-3-pro-preview",
             google_api_key=st.secrets["GEMINI_API_KEY"],
             temperature=0.7
         )
@@ -641,6 +641,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
